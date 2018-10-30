@@ -96,7 +96,7 @@ def parse(String description) {
 			} else if (descMap?.clusterInt == zigbee.TEMPERATURE_MEASUREMENT_CLUSTER && descMap.commandInt == 0x07) {
 				if (descMap.data[0] == "00") {
 					log.debug "TEMP REPORTING CONFIG RESPONSE: $descMap"
-					sendEvent(name: "checkInterval", value: 60 * 12, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
+					sendEvent(name: "checkInterval", value: 1.5 * 2, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 				} else {
 					log.warn "TEMP REPORTING CONFIG FAILED- error code: ${descMap.data[0]}"
 				}
