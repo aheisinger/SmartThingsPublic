@@ -1,6 +1,6 @@
 /********************************************************************************************
 |    Application Name: NST Automations                                                      |
-|    Copyright (C) 2017, 2018 Anthony S.                                                    |
+|    Copyright (C) 2017, 2018, 2019 Anthony S.                                                    |
 |    Authors: Anthony S. (@tonesto7), Eric S. (@E_sch)                                      |
 |    Contributors: Ben W. (@desertblade)                                                    |
 |    A few code methods are modeled from those in CoRE by Adrian Caramaliu                  |
@@ -26,8 +26,8 @@ definition(
 	appSetting "devOpt"
 }
 
-def appVersion() { "5.4.7" }
-def appVerDate() { "11-08-2018" }
+def appVersion() { "5.5.0" }
+def appVerDate() { "01-25-2019" }
 
 preferences {
 	//startPage
@@ -234,12 +234,12 @@ def fixState() {
 	def before = getStateSizePerc()
 	if(!atomicState?.resetAllData && parent?.settings?.resetAllData) { // automation cleanup called from update() -> initAutoApp()
 		def data = getState()?.findAll { !(it?.key in [ "automationType", "disableAutomation", "lastScheduleList", "resetAllData", "disableAutomationDt",
-			"leakWatRestoreMode", "leakWatTstatOffRequested", 
+			"leakWatRestoreMode", "leakWatTstatOffRequested",
 			"conWatRestoreMode", "conWatlastMode", "conWatTstatOffRequested",
 			"oldremSenTstat", /* "remSenTstat", */
 			"haveRunFan", "lastfanCtrlRunDt", "lastfanCtrlFanOffDt",
-			"extTmpRestoreMode", "extTmpTstatOffRequested", "extTmpLastDesiredTemp", "extTmplastMode", "extTmpLastDesiredCTemp", "extTmpLastDesiredHTemp", "extTmpChgWhileOnDt", "extTmpChgWhileOffDt", 
-			"remDiagLogDataStore", 
+			"extTmpRestoreMode", "extTmpTstatOffRequested", "extTmpLastDesiredTemp", "extTmplastMode", "extTmpLastDesiredCTemp", "extTmpLastDesiredHTemp", "extTmpChgWhileOnDt", "extTmpChgWhileOffDt",
+			"remDiagLogDataStore",
 			"restoreId", "restoredFromBackup", "restoreCompleted", "automationTypeFlag", "newAutomationFile", "installData", "usageMetricsStore" ]) }
 //  "watchDogAlarmActive", "extTmpAlarmActive", "conWatAlarmActive", "leakWatAlarmActive",
 		data.each { item ->
@@ -589,7 +589,7 @@ def initAutoApp() {
 			atomicState."schedule${cnt}MotionEnabled" = null
 			atomicState."schedule${cnt}SensorEnabled" = null
 
-			def newscd = []
+			def newscd = [:]
 			def act = settings["${sLbl}SchedActive"]
 			if(act) {
 				newscd = cleanUpMap([
@@ -2106,8 +2106,8 @@ def getRemoteSenTemp() {
 	}
 }
 
-def fixTempSetting(Double temp) {
-	def newtemp = temp
+def fixTempSetting(temp) {
+	Double newtemp = temp?.toDouble()
 	if(temp != null) {
 		if(getTemperatureScale() == "C") {
 			if(temp > 35) {    // setting was done in F
@@ -2128,7 +2128,7 @@ def setRemoteSenTstat(val) {
 }
 
 def getRemSenCoolSetTemp(curMode=null, isEco=false, useCurrent=true) {
-	def coolTemp
+	Double coolTemp
 	def theMode = curMode != null ? curMode : null
 	if(theMode == null) {
 		def tstat = schMotTstat
@@ -2155,13 +2155,13 @@ def getRemSenCoolSetTemp(curMode=null, isEco=false, useCurrent=true) {
 			if(isRemSenConfigured()) {
 				if(theMode == "cool" && coolTemp == null /* && isEco */) {
 					if(atomicState?.extTmpLastDesiredTemp) {
-						coolTemp = atomicState?.extTmpLastDesiredTemp
+						coolTemp = atomicState?.extTmpLastDesiredTemp.toDouble()
 						atomicState.remoteCoolSetSourceStr = "Last Desired Temp"
 					}
 				}
 				if(theMode == "auto" && coolTemp == null /* && isEco */) {
 					if(atomicState?.extTmpLastDesiredCTemp) {
-						coolTemp = atomicState?.extTmpLastDesiredCTemp
+						coolTemp = atomicState?.extTmpLastDesiredCTemp.toDouble()
 						atomicState.remoteCoolSetSourceStr = "Last Desired CTemp"
 					}
 				}
@@ -2193,7 +2193,7 @@ def getRemSenCoolSetTemp(curMode=null, isEco=false, useCurrent=true) {
 }
 
 def getRemSenHeatSetTemp(curMode=null, isEco=false, useCurrent=true) {
-	def heatTemp
+	Double heatTemp
 	def theMode = curMode != null ? curMode : null
 	if(theMode == null) {
 		def tstat = schMotTstat
@@ -2220,13 +2220,13 @@ def getRemSenHeatSetTemp(curMode=null, isEco=false, useCurrent=true) {
 			if(isRemSenConfigured()) {
 				if(theMode == "heat" && heatTemp == null /* && isEco */) {
 					if(atomicState?.extTmpLastDesiredTemp) {
-						heatTemp = atomicState?.extTmpLastDesiredTemp
+						heatTemp = atomicState?.extTmpLastDesiredTemp.toDouble()
 						atomicState.remoteHeatSetSourceStr = "Last Desired Temp"
 					}
 				}
 				if(theMode == "auto" && heatTemp == null /* && isEco */) {
 					if(atomicState?.extTmpLastDesiredHTemp) {
-						heatTemp = atomicState?.extTmpLastDesiredHTemp
+						heatTemp = atomicState?.extTmpLastDesiredHTemp.toDouble()
 						atomicState.remoteHeatSetSourceStr = "Last Desired HTemp"
 				 	}
 				}
@@ -3067,12 +3067,14 @@ def getExtConditions( doEvent = false ) {
 			def cur = parent?.getWData()
 			def weather = parent.getWeatherDevice()
 
-			if(cur && weather && cur?.current_observation) {
-				atomicState?.curWeather = cur?.current_observation
-				atomicState?.curWeatherTemp_f = Math.round(cur?.current_observation?.temp_f) as Integer
-				atomicState?.curWeatherTemp_c = Math.round(cur?.current_observation?.temp_c.toDouble())
-				atomicState?.curWeatherLoc = cur?.current_observation?.display_location?.full.toString()  // This is not available as attribute in dth
-				//atomicState?.curWeatherHum = cur?.current_observation?.relative_humidity?.toString().replaceAll("\\%", "")
+			if(cur && weather /* && cur?.current_observation */) {
+				atomicState?.curWeather = cur
+				atomicState?.curWeatherTemp_f = getTemperatureScale() == "C" ? Math.round(cur?.temperature * 9/5 + 32) : Math.round(cur?.temperature) as Integer
+				atomicState?.curWeatherTemp_c = getTemperatureScale() == "C" ? Math.round(cur?.temperature.toDouble()) : Math.round( ((cur?.temperature - 32) * 5/9) as Double)
+
+				def curLoc = parent?.getWLocation()
+				atomicState?.curWeatherLoc = curLoc?.location?.city + curLoc?.location?.adminDistrict  // This is not available as attribute in dth
+				//atomicState?.curWeatherHum = cur?.relativeHumidity
 
 				def dp = 0.0
 				if(weather) {  // Dewpoint is calculated in dth
@@ -4160,7 +4162,7 @@ def nestModePresPage() {
 				input (name: "nModeCamOffHome", type: "bool", title: "Turn Off Nest Cams when Home?", required: false, defaultValue: false, submitOnChange: true, image: getAppImg("camera_gray_icon.png"))
 				if(settings?.nModeCamOffHome || settings?.nModeCamOnAway) {
 					paragraph title: "Optional" , "You can choose which cameras are changed when Home/Away.  If you don't select any devices all will be changed."
-					input (name: "nModeCamsSel", type: "device.nestCamera", title: "Select your Nest Cams?", required: false, multiple: true, submitOnChange: true, image: getAppImg("camera_blue_icon.png"))
+					input (name: "nModeCamsSel", type: "capability.soundSensor", title: "Select your Nest Cams?", required: false, multiple: true, submitOnChange: true, image: getAppImg("camera_blue_icon.png"))
 				}
 			}
 		}
@@ -6572,7 +6574,7 @@ def setNotificationPage(params) {
 	}
 	dynamicPage(name: "setNotificationPage", title: "Configure Notification Options", uninstall: false) {
 		section("Notification Preferences:") {
-			input "${pName}NotificationsOn", "bool", title: "Enable Notifications?", description: (!settings["${pName}NotificationsOn"] ? "Enable Text, Voice, Ask Alexa, or Alarm Notifications" : ""), required: false, 
+			input "${pName}NotificationsOn", "bool", title: "Enable Notifications?", description: (!settings["${pName}NotificationsOn"] ? "Enable Text, Voice, Ask Alexa, or Alarm Notifications" : ""), required: false,
 					defaultValue: false, submitOnChange: true, image: getAppImg("notification_icon.png")
 		}
 		def fixSettings = false
@@ -6615,7 +6617,7 @@ def setNotificationPage(params) {
 						}
 					}
 				}
-			
+
 			} else {
 				fixSettings = true
 			}
@@ -6814,7 +6816,7 @@ String getNotifSchedDesc(pName) {
 	return (notifDesc != "") ? "${notifDesc}" : null
 }
 
-def getOk2Notify(pName) { 
+def getOk2Notify(pName) {
 	return ((settings["${pName}NotificationsOn"] == true) && (daysOk(settings?."${pName}quietDays") == true) && (notificationTimeOk(pName) == true) && (modesOk(settings?."${pName}quietModes") == true))
 }
 
@@ -7543,12 +7545,12 @@ def getSafetyTempsOk(tstat) {
 }
 
 def getGlobalDesiredHeatTemp() {
-	def t0 = parent?.settings?.locDesiredHeatTemp?.toDouble()
+	Double t0 = parent?.settings?.locDesiredHeatTemp?.toDouble()
 	return t0 ?: null
 }
 
 def getGlobalDesiredCoolTemp() {
-	def t0 = parent?.settings?.locDesiredCoolTemp?.toDouble()
+	Double t0 = parent?.settings?.locDesiredCoolTemp?.toDouble()
 	return t0 ?: null
 }
 
