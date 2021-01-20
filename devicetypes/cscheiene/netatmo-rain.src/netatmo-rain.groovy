@@ -1,5 +1,5 @@
 /**
- *  netatmo-rain module Date: 05.08.2017
+ *  netatmo-rain module
  *
  *  Copyright 2014 Brian Steere
  *
@@ -16,18 +16,18 @@
  *
  */
 metadata {
-	definition (name: "Netatmo Rain", namespace: "cscheiene", author: "Brian Steere,cscheiene") {
+	definition (name: "Netatmo Rain", namespace: "cscheiene", author: "Brian Steere,cscheiene", mnmn: "SmartThingsCommunity", vid: "84cf66f4-66e4-3a14-945b-5c609092ef36", ocfDeviceType: "x.com.st.d.sensor.moisture") {
 	    capability "Sensor"
         capability "Battery"
         capability "Refresh"
+        capability "Health Check"
+        capability "islandtravel33177.rain"
+        capability "islandtravel33177.rainhour"
+        capability "islandtravel33177.rainday"
+        capability "islandtravel33177.lastUpdate"
         
-        attribute "rain", "number"
-        attribute "rainSumHour", "number"
-        attribute "rainSumDay", "number"
         attribute "units", "string"
-        attribute "lastupdate", "string"
-        
-        command "poll"
+
 	}
 
 	simulator {
@@ -37,6 +37,7 @@ metadata {
     preferences {
         input title: "Settings", description: "To change units and time format, go to the Netatmo Connect App", displayDuringSetup: false, type: "paragraph", element: "paragraph"
         input title: "Information", description: "Your Netatmo station updates the Netatmo servers approximately every 10 minutes. The Netatmo Connect app polls these servers every 5 minutes. If the time of last update is equal to or less than 10 minutes, pressing the refresh button will have no effect", displayDuringSetup: false, type: "paragraph", element: "paragraph"
+        input title: "Version ID", description: "070920", displayDuringSetup: false, type: "paragraph", element: "paragraph"
     }
     
 	tiles (scale: 2) {
@@ -76,7 +77,7 @@ metadata {
  			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
  		}        
         main (["main"])
- 		details(["main", "rainSumDay", "battery", "lastupdate" ,"refresh"])
+ 		details(["main", "rainSumDay", "battery", "lastupdate" ,"refresh", "rain"])
 	}
 }
 
@@ -93,4 +94,12 @@ def poll() {
 def refresh() {
     log.debug "Refreshing"
 	parent.poll()
+}
+
+def installed() {
+	sendEvent(name: "checkInterval", value: 4 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "cloud"])
+}
+
+def updated() {
+	sendEvent(name: "checkInterval", value: 4 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "cloud"])
 }

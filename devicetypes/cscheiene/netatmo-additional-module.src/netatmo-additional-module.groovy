@@ -1,7 +1,7 @@
 /**
- *  netatmo additional module  Date: 10.07.2017
+ *  Netatmo Additional Module
  *
- *  Copyright 2014 Brian Steere
+ *  Copyright 2019 cscheiene
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -11,23 +11,21 @@
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
- *
- *  Based on Brian Steere's netatmo-basestation DTH
- *
  */
 metadata {
-	definition (name: "Netatmo Additional Module", namespace: "cscheiene", author: "Brian Steere,cscheiene") {
+	definition (name: "Netatmo Additional Module", namespace: "cscheiene", author: "cscheiene", ocfDeviceType: "oic.d.thermostat", mnmn: "SmartThingsCommunity", vid: "4ee8badb-ce3a-3a50-b333-83ce37eeb19c") {
+ 		capability "Temperature Measurement"
         capability "Sensor"
         capability "Battery"
 		capability "Relative Humidity Measurement"
-		capability "Temperature Measurement"
         capability "Carbon Dioxide Measurement"
         capability "Refresh"
+        capability "Health Check"
+        capability "islandtravel33177.lastUpdate"
+        capability "islandtravel33177.tempTrend"
         
         attribute "min_temp", "number"
         attribute "max_temp", "number"
-        attribute "temp_trend", "string"
-        attribute "lastupdate", "string"
 	}
 
 	simulator {
@@ -36,13 +34,13 @@ metadata {
     preferences {
         input title: "Settings", description: "To change units and time format, go to the Netatmo Connect App", displayDuringSetup: false, type: "paragraph", element: "paragraph"
         input title: "Information", description: "Your Netatmo station updates the Netatmo servers approximately every 10 minutes. The Netatmo Connect app polls these servers every 5 minutes. If the time of last update is equal to or less than 10 minutes, pressing the refresh button will have no effect", displayDuringSetup: false, type: "paragraph", element: "paragraph"
-
+        input title: "Version ID", description: "070920", displayDuringSetup: false, type: "paragraph", element: "paragraph"
     }    
     
 
 	tiles (scale: 2) {
-		multiAttributeTile(name:"main", type:"generic", width:6, height:4) {
-			tileAttribute("temperature", key: "PRIMARY_CONTROL") {
+		multiAttributeTile(name: "temperature", type: "generic", width: 6, height: 4) {
+			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
             	attributeState "temperature", label:'${currentValue}°', icon:"st.Weather.weather2", backgroundColors:[
  				[value: 31, color: "#153591"],
  				[value: 44, color: "#1e9cbb"],
@@ -58,7 +56,7 @@ metadata {
 			}           
 		} 
  		valueTile("carbonDioxide", "device.carbonDioxide", width: 2, height: 2, inactiveLabel: false) {
- 			state "carbonDioxide", label:'${currentValue}ppm', unit:"CO2", backgroundColors: [
+ 			state "carbonDioxide", label:'${currentValue}ppm', unit:"ppm", backgroundColors: [
  				[value: 600, color: "#44B621"],
                 [value: 999, color: "#ffcc00"],
                 [value: 1000, color: "#e86d13"]
@@ -70,8 +68,8 @@ metadata {
         valueTile("max_temp", "max_temp", width: 2, height: 1) {
  			state "max_temp", label: 'Max: ${currentValue}°'
  		}
-        valueTile("temp_trend", "temp_trend", width: 4, height: 1) {
- 			state "temp_trend", label: 'Temp Trend: ${currentValue}'
+        valueTile("tempTrend", "tempTrend", width: 4, height: 1) {
+ 			state "tempTrend", label: 'Temp Trend: ${currentValue}'
  		}         
 		valueTile("battery", "device.battery", inactiveLabel: false, width: 2, height: 2) {
 			state "battery_percent", label:'Battery: ${currentValue}%', backgroundColors:[
@@ -109,8 +107,8 @@ metadata {
  			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
  		}              
                
-        main "main"
- 		details(["main", "min_temp","date_min_temp","carbonDioxide", "max_temp","date_max_temp", "temp_trend","lastupdate","battery","refresh"])
+        main "temperature"
+ 		details(["temperature", "min_temp","date_min_temp","carbonDioxide", "max_temp","date_max_temp", "tempTrend","lastupdate","battery","refresh"])
 	}
 }
 
@@ -128,4 +126,12 @@ def poll() {
 def refresh() {
     log.debug "Refreshing"
 	parent.poll()
+}
+
+def installed() {
+	sendEvent(name: "checkInterval", value: 4 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "cloud"])
+}
+
+def updated() {
+	sendEvent(name: "checkInterval", value: 4 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "cloud"])
 }

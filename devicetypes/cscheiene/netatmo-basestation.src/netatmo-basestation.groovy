@@ -1,7 +1,7 @@
 /**
- *  netatmo-basestation Date: 12.07.2017
+ *  Netatmo Basestation
  *
- *  Copyright 2014 Brian Steere
+ *  Copyright 2019 cscheiene
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -11,27 +11,24 @@
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
- *
- * Based on Brian Steere's netatmo-basestation DTH
  */
- 
- 
 metadata {
-	definition (name: "Netatmo Basestation", namespace: "cscheiene", author: "Brian Steere,cscheiene") {
-		capability "Relative Humidity Measurement"
+	definition (name: "Netatmo Basestation", namespace: "cscheiene", author: "cscheiene", ocfDeviceType: "oic.d.thermostat", mnmn: "SmartThingsCommunity", vid: "cfd7f24e-d587-3b0c-9965-95f394512558") {
 		capability "Temperature Measurement"
         capability "Sensor"
         capability "Carbon Dioxide Measurement"
-        capability "Sound Pressure Level"
-        capability "Sound Sensor"
+		capability "Relative Humidity Measurement"
+		capability "Sound Pressure Level"
+		capability "Sound Sensor"		
         capability "Refresh"
+        capability "Health Check"
+        capability 'Atmospheric Pressure Measurement'
+        capability "islandtravel33177.lastUpdate"
+        capability "islandtravel33177.tempTrend"
 
-		attribute "pressure", "number"
         attribute "min_temp", "number"
         attribute "max_temp", "number"
-        attribute "temp_trend", "string"
         attribute "pressure_trend", "string"
-        attribute "lastupdate", "string"
 	}
 
 	simulator {
@@ -40,6 +37,7 @@ metadata {
     preferences {
         input title: "Settings", description: "To change units and time format, go to the Netatmo Connect App", displayDuringSetup: false, type: "paragraph", element: "paragraph"
         input title: "Information", description: "Your Netatmo station updates the Netatmo servers approximately every 10 minutes. The Netatmo Connect app polls these servers every 5 minutes. If the time of last update is equal to or less than 10 minutes, pressing the refresh button will have no effect", displayDuringSetup: false, type: "paragraph", element: "paragraph"
+        input title: "Version ID", description: "070920", displayDuringSetup: false, type: "paragraph", element: "paragraph"
     }      
 
 	tiles (scale: 2) {
@@ -80,8 +78,8 @@ metadata {
  		valueTile("humidity", "device.humidity", inactiveLabel: false) {
  			state "humidity", label:'${currentValue}%'
  		}
-        valueTile("temp_trend", "temp_trend", width: 4, height: 1) {
- 			state "temp_trend", label: 'Temp Trend: ${currentValue}'
+        valueTile("tempTrend", "tempTrend", width: 4, height: 1) {
+ 			state "tempTrend", label: 'Temp Trend: ${currentValue}'
  		}
         valueTile("pressure_trend", "pressure_trend", width: 4, height: 1) {
  			state "pressure_trend", label: 'Press Trend: ${currentValue}'
@@ -96,9 +94,9 @@ metadata {
  		valueTile("soundPressureLevel", "device.soundPressureLevel", width: 2, height: 1, inactiveLabel: false) {
  			state "soundPressureLevel", label:'${currentValue}db'
  		}
- 		valueTile("sound", "device.sound", width: 2, height: 1, inactiveLabel: false) {
- 			state "not detected", label:'Quiet'
-            state "detected", label:'Sound detected'
+ 		standardTile("sound", "device.sound", width: 2, height: 1, inactiveLabel: false) {
+ 			state "not detected", label:'Quiet', icon: "st.Entertainment.entertainment15"
+            state "detected", label:'Sound detected', icon: "st.Entertainment.entertainment15"
  		}        
  		valueTile("pressure", "device.pressure", width: 2, height: 1, inactiveLabel: false) {
  			state "pressure", label:'${currentValue}'
@@ -120,7 +118,7 @@ metadata {
  		}
         
         main(["main"])
- 		details(["main","min_temp","date_min_temp","carbonDioxide", "max_temp","date_max_temp", "temp_trend", "soundPressureLevel", "pressure", "units","sound", "pressure_trend", "refresh", "lastupdate"])
+ 		details(["main","min_temp","date_min_temp","carbonDioxide", "max_temp","date_max_temp", "tempTrend","sound", "pressure", "units", "soundPressureLevel", "pressure_trend", "refresh", "lastupdate"])
 	}
 }
 
@@ -132,11 +130,21 @@ def parse(String description) {
 }
 
 def poll() {
-	log.debug "Polling"
+	log.debug "Polling" 
     parent.poll()
 }
 
 def refresh() {
     log.debug "Refreshing"
 	parent.poll()
+}
+
+def installed() {
+	sendEvent(name: "checkInterval", value: 4 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "cloud"])
+    sendEvent(name: 'battery', value: 100, unit: "%") //workaround for the new ST app
+}
+
+def updated() {
+	sendEvent(name: "checkInterval", value: 4 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "cloud"])
+    sendEvent(name: 'battery', value: 100, unit: "%") //workaround for the new ST app
 }
