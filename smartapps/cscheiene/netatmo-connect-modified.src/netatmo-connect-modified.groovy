@@ -378,7 +378,10 @@ def initialize() {
 	// Do the initial poll
 	poll()
 	// Schedule it to run every 5 minutes
-	runEvery5Minutes("poll")
+	//runEvery5Minutes("poll")
+    
+    // Schedule it to run every 2 minutes
+    schedule("0 /2 * * * ?", poll)
 }
 
 def uninstalled() {
@@ -478,9 +481,9 @@ def listDevices() {
 		}
 
         section("Preferences") {
-        	input "rainUnits", "enum", title: "Rain Units", description: "Please select rain units", required: true, options: [mm:'Millimeters', in:'Inches']
+        	input "rainUnits", "enum", title: "Rain Units", description: "Please select rain units", required: true, options: [MM:'Millimeters', IN:'Inches']
             input "pressUnits", "enum", title: "Pressure Units", description: "Please select pressure units", required: true, options: [mbar:'mbar', inhg:'inhg']            
-            input "windUnits", "enum", title: "Wind Units", description: "Please select wind units", required: true, options: [kph:'kph', ms:'ms', mph:'mph', kts:'kts']
+            input "windUnits", "enum", title: "Wind Units", description: "Please select wind units", required: true, options: [KPH:'KPH', MS:'MS', MPH:'MPH', KTS:'KTS', BFT:'BFT']
             input "time", "enum", title: "Time Format", description: "Please select time format", required: true, options: [12:'12 Hour', 24:'24 Hour']
             input "sound", "number", title: "Sound Sensor: \nEnter the value when sound will be marked as detected", description: "Please enter number", required: false
         }
@@ -536,11 +539,15 @@ def poll() {
 		//log.debug "Update: $child";
 		switch(detail?.type) {
 			case 'NAMain':
+				if(data == null) {
+                log.error "Main Module is missing data"
+                } else {             
 				log.debug "Updating Basestation $data"
 				child?.sendEvent(name: 'temperature', value: cToPref(data['Temperature']) as float, unit: getTemperatureScale())
 				child?.sendEvent(name: 'carbonDioxide', value: data['CO2'], unit: "ppm")
 				child?.sendEvent(name: 'humidity', value: data['Humidity'], unit: "%")
-                child?.sendEvent(name: 'temp_trend', value: data['temp_trend'], unit: "")                
+                child?.sendEvent(name: 'tempTrend', value: data['temp_trend'], unit: "")                
+                child?.sendEvent(name: 'atmosphericPressure', value: (pressToPref(data['Pressure'])).toDouble().round(), unit: settings.pressUnits)
                 child?.sendEvent(name: 'pressure', value: (pressToPref(data['Pressure'])).toDouble().trunc(2), unit: settings.pressUnits)
 				child?.sendEvent(name: 'soundPressureLevel', value: data['Noise'], unit: "db")
                 child?.sendEvent(name: 'sound', value: noiseTosound(data['Noise']))
@@ -552,11 +559,15 @@ def poll() {
                 child?.sendEvent(name: 'date_min_temp', value: lastUpdated(data['date_min_temp']), unit: "")
                 child?.sendEvent(name: 'date_max_temp', value: lastUpdated(data['date_max_temp']), unit: "")
 				break;
+                }
 			case 'NAModule1':
+				if(data == null) {
+                log.error "Outdoor Module is missing data"
+                } else {            
 				log.debug "Updating Outdoor Module $data"
 				child?.sendEvent(name: 'temperature', value: cToPref(data['Temperature']) as float, unit: getTemperatureScale())
 				child?.sendEvent(name: 'humidity', value: data['Humidity'], unit: "%")
-                child?.sendEvent(name: 'temp_trend', value: data['temp_trend'], unit: "")
+                child?.sendEvent(name: 'tempTrend', value: data['temp_trend'], unit: "")
                 child?.sendEvent(name: 'min_temp', value: cToPref(data['min_temp']) as float, unit: getTemperatureScale())
                 child?.sendEvent(name: 'max_temp', value: cToPref(data['max_temp']) as float, unit: getTemperatureScale())
                 child?.sendEvent(name: 'battery', value: detail['battery_percent'], unit: "%")
@@ -564,24 +575,32 @@ def poll() {
                 child?.sendEvent(name: 'date_min_temp', value: lastUpdated(data['date_min_temp']), unit: "")
                 child?.sendEvent(name: 'date_max_temp', value: lastUpdated(data['date_max_temp']), unit: "")
 				break;
+                }
 			case 'NAModule3':
+				if(data == null) {
+                log.error "Rain Module is missing data"
+                } else {            
 				log.debug "Updating Rain Module $data"
 				child?.sendEvent(name: 'rain', value: (rainToPref(data['Rain'])), unit: settings.rainUnits)
-				child?.sendEvent(name: 'rainSumHour', value: (rainToPref(data['sum_rain_1'])), unit: settings.rainUnits)
-				child?.sendEvent(name: 'rainSumDay', value: (rainToPref(data['sum_rain_24'])), unit: settings.rainUnits)
+				child?.sendEvent(name: 'rainhour', value: (rainToPref(data['sum_rain_1'])), unit: settings.rainUnits)
+				child?.sendEvent(name: 'rainday', value: (rainToPref(data['sum_rain_24'])), unit: settings.rainUnits)
 				child?.sendEvent(name: 'units', value: settings.rainUnits)
                 child?.sendEvent(name: 'battery', value: detail['battery_percent'], unit: "%")
-                child?.sendEvent(name: 'lastupdate', value: lastUpdated(data['time_utc']), unit: "")
+                child?.sendEvent(name: 'lastupdate', value: lastUpdated(data['time_utc']))
 				child?.sendEvent(name: 'rainUnits', value: rainToPrefUnits(data['Rain']), displayed: false)
 				child?.sendEvent(name: 'rainSumHourUnits', value: rainToPrefUnits(data['sum_rain_1']), displayed: false)
 				child?.sendEvent(name: 'rainSumDayUnits', value: rainToPrefUnits(data['sum_rain_24']), displayed: false)                
 				break;
+                }
 			case 'NAModule4':
+				if(data == null) {
+                log.error "Additional module is missing data"
+                } else {            
 				log.debug "Updating Additional Module $data"
 				child?.sendEvent(name: 'temperature', value: cToPref(data['Temperature']) as float, unit: getTemperatureScale())
 				child?.sendEvent(name: 'carbonDioxide', value: data['CO2'], unit: "ppm")
 				child?.sendEvent(name: 'humidity', value: data['Humidity'], unit: "%")
-                child?.sendEvent(name: 'temp_trend', value: data['temp_trend'], unit: "")                
+                child?.sendEvent(name: 'tempTrend', value: data['temp_trend'], unit: "")                
                 child?.sendEvent(name: 'min_temp', value: cToPref(data['min_temp']) as float, unit: getTemperatureScale())
                 child?.sendEvent(name: 'max_temp', value: cToPref(data['max_temp']) as float, unit: getTemperatureScale())
                 child?.sendEvent(name: 'battery', value: detail['battery_percent'], unit: "%")
@@ -589,24 +608,33 @@ def poll() {
                 child?.sendEvent(name: 'date_min_temp', value: lastUpdated(data['date_min_temp']), unit: "")
                 child?.sendEvent(name: 'date_max_temp', value: lastUpdated(data['date_max_temp']), unit: "")
 				break;
+                }
             case 'NAModule2':
-				log.debug "Updating Wind Module $data"
-				child?.sendEvent(name: 'WindAngle', value: data['WindAngle'], unit: "°", displayed: false)
-                child?.sendEvent(name: 'GustAngle', value: data['GustAngle'], unit: "°", displayed: false)
-                child?.sendEvent(name: 'battery', value: detail['battery_percent'], unit: "%")
-				child?.sendEvent(name: 'WindStrength', value: (windToPref(data['WindStrength'])).toDouble().trunc(1), unit: settings.windUnits)
-                child?.sendEvent(name: 'GustStrength', value: (windToPref(data['GustStrength'])).toDouble().trunc(1), unit: settings.windUnits)
-                child?.sendEvent(name: 'max_wind_str', value: (windToPref(data['max_wind_str'])).toDouble().trunc(1), unit: settings.windUnits)
-                child?.sendEvent(name: 'units', value: settings.windUnits)
-                child?.sendEvent(name: 'lastupdate', value: lastUpdated(data['time_utc']), unit: "")
-                child?.sendEvent(name: 'date_max_wind_str', value: lastUpdated(data['date_max_wind_str']), unit: "")
-                child?.sendEvent(name: 'WindDirection', value: windTotext(data['WindAngle']))
-                child?.sendEvent(name: 'GustDirection', value: gustTotext(data['GustAngle']))
+				if(data == null) {
+                log.error "Windmodule is missing data"
+                } else {
+                log.debug "Updating Wind Module $data"
+				child?.sendEvent(name: 'wind', value: (windToPref(data['WindStrength'])).toDouble().trunc(1), unit: settings.windUnits)                
+                child?.sendEvent(name: 'windAngle', value: data['WindAngle'], unit: "°")
+                child?.sendEvent(name: 'windAngleText', value: windTotext(data['WindAngle']))
+                child?.sendEvent(name: 'windDirection', value: windTotextonly(data['WindAngle']))
+                child?.sendEvent(name: 'gustStrength', value: (windToPref(data['GustStrength'])).toDouble().trunc(1), unit: settings.windUnits)                
+                child?.sendEvent(name: 'gustAngle', value: data['GustAngle'], unit: "°")
+                child?.sendEvent(name: 'gustAngleText', value: gustTotext(data['GustAngle']))
+                child?.sendEvent(name: 'gustDirection', value: windTotextonly(data['GustAngle']))
+                child?.sendEvent(name: 'windMax', value: (windToPref(data['max_wind_str'])).toDouble().trunc(1), unit: settings.windUnits)
+                child?.sendEvent(name: 'lastupdate', value: lastUpdated(data['time_utc']))
+                child?.sendEvent(name: 'windMaxTime', value: lastUpdated(data['date_max_wind_str']))
+                child?.sendEvent(name: 'battery', value: detail['battery_percent'], unit: "%") 
+                //old app, to be removed
 				child?.sendEvent(name: 'WindStrengthUnits', value: windToPrefUnits(data['WindStrength']), displayed: false)
                 child?.sendEvent(name: 'GustStrengthUnits', value: windToPrefUnits(data['GustStrength']), displayed: false)
-                child?.sendEvent(name: 'max_wind_strUnits', value: windToPrefUnits(data['max_wind_str']), displayed: false)               
+                child?.sendEvent(name: 'max_wind_strUnits', value: windToPrefUnits(data['max_wind_str']), displayed: false)
+                child?.sendEvent(name: 'units', value: settings.windUnits)                
+               
                 break;
 		}
+      }
 	}
 }
 
@@ -619,7 +647,7 @@ def cToPref(temp) {
 }
 
 def rainToPref(rain) {
-	if(settings.rainUnits == 'mm') {
+	if(settings.rainUnits == 'MM') {
     	return rain.toDouble().trunc(1)
     } else {
     	return (rain * 0.039370).toDouble().trunc(3)
@@ -627,10 +655,10 @@ def rainToPref(rain) {
 }
 
 def rainToPrefUnits(rain) {
-	if(settings.rainUnits == 'mm') {
-    	return rain.toDouble().trunc(1) + " mm"
+	if(settings.rainUnits == 'MM') {
+    	return rain.toDouble().trunc(1) + " MM"
     } else {
-    	return (rain * 0.039370).toDouble().trunc(3) + " in"
+    	return (rain * 0.039370).toDouble().trunc(3) + " IN"
     }
 }
 
@@ -643,26 +671,52 @@ def pressToPref(Pressure) {
 }
 
 def windToPref(Wind) {
-	if(settings.windUnits == 'kph') {
+	if(settings.windUnits == 'KPH') {
     	return Wind
-    } else if (settings.windUnits == 'ms') {
+    } else if (settings.windUnits == 'MS') {
     	return Wind * 0.277778
-    } else if (settings.windUnits == 'mph') {
+    } else if (settings.windUnits == 'MPH') {
     	return Wind * 0.621371192
-    } else if (settings.windUnits == 'kts') {
+    } else if (settings.windUnits == 'KTS') {
     	return Wind * 0.539956803
+    } else if (settings.windUnits == 'BFT' && Wind < 1) {
+    	return 0
+    } else if (settings.windUnits == 'BFT' && Wind < 6) {
+    	return 1
+    } else if (settings.windUnits == 'BFT' && Wind < 12) {
+    	return 2
+    } else if (settings.windUnits == 'BFT' && Wind < 20) {
+    	return 3
+    } else if (settings.windUnits == 'BFT' && Wind < 29) {
+    	return 4
+    } else if (settings.windUnits == 'BFT' && Wind < 39) {
+    	return 5
+    } else if (settings.windUnits == 'BFT' && Wind < 50) {
+    	return 6
+    } else if (settings.windUnits == 'BFT' && Wind < 62) {
+    	return 7
+    } else if (settings.windUnits == 'BFT' && Wind < 75) {
+    	return 8
+    } else if (settings.windUnits == 'BFT' && Wind < 89) {
+    	return 9
+    } else if (settings.windUnits == 'BFT' && Wind < 103) {
+    	return 10
+    } else if (settings.windUnits == 'BFT' && Wind < 118) {
+    	return 11
+    } else if (settings.windUnits == 'BFT' && Wind >= 118) {
+    	return 12
     }
 }
 
 def windToPrefUnits(Wind) {
-	if(settings.windUnits == 'kph') {
+	if(settings.windUnits == 'KPH') {
     	return Wind
-    } else if (settings.windUnits == 'ms') {
-    	return (Wind * 0.277778).toDouble().trunc(1) +" ms"
-    } else if (settings.windUnits == 'mph') {
-    	return (Wind * 0.621371192).toDouble().trunc(1) +" mph"
-    } else if (settings.windUnits == 'kts') {
-    	return (Wind * 0.539956803).toDouble().trunc(1) +" kts"
+    } else if (settings.windUnits == 'MS') {
+    	return (Wind * 0.277778).toDouble().trunc(1) +" MS"
+    } else if (settings.windUnits == 'MPH') {
+    	return (Wind * 0.621371192).toDouble().trunc(1) +" MPH"
+    } else if (settings.windUnits == 'KTS') {
+    	return (Wind * 0.539956803).toDouble().trunc(1) +" KTS"
     }
 }
 def lastUpdated(time) {
@@ -683,22 +737,24 @@ def lastUpdated(time) {
 }
 
 def windTotext(WindAngle) {
-	if(WindAngle < 23) { 
-    	return WindAngle + "° North"
+	if(WindAngle < 0) { 
+    	return "No Wind"
+    } else if (WindAngle < 23) {
+    	return WindAngle + "° North"        
     } else if (WindAngle < 68) {
-    	return WindAngle + "° NorthEast"
+    	return WindAngle + "° NEast"
     } else if (WindAngle < 113) {
     	return WindAngle + "° East"
     } else if (WindAngle < 158) {
-    	return WindAngle + "° SouthEast"
+    	return WindAngle + "° SEast"
     } else if (WindAngle < 203) {
     	return WindAngle + "° South"
     } else if (WindAngle < 248) {
-    	return WindAngle + "° SouthWest"
+    	return WindAngle + "° SWest"
     } else if (WindAngle < 293) {
     	return WindAngle + "° West"
     } else if (WindAngle < 338) {
-    	return WindAngle + "° NorthWest"
+    	return WindAngle + "° NWest"
     } else if (WindAngle < 361) {
     	return WindAngle + "° North"
     }
@@ -723,6 +779,52 @@ def gustTotext(GustAngle) {
     	return GustAngle + "° NWest"
     } else if (GustAngle < 361) {
     	return GustAngle + "° North"
+    }
+}
+
+def windTotextonly(WindAngle) {
+	if(WindAngle < 0) { 
+    	return "No Wind"
+    } else if (WindAngle < 23) {
+    	return "North"        
+    } else if (WindAngle < 68) {
+    	return "NEast"
+    } else if (WindAngle < 113) {
+    	return "East"
+    } else if (WindAngle < 158) {
+    	return "SEast"
+    } else if (WindAngle < 203) {
+    	return "South"
+    } else if (WindAngle < 248) {
+    	return "SWest"
+    } else if (WindAngle < 293) {
+    	return "West"
+    } else if (WindAngle < 338) {
+    	return "NWest"
+    } else if (WindAngle < 361) {
+    	return "North"
+    }
+}
+
+def gustTotextonly(GustAngle) {
+	if(GustAngle < 23) { 
+    	return "North"
+    } else if (GustAngle < 68) {
+    	return "NEast"
+    } else if (GustAngle < 113) {
+    	return "East"
+    } else if (GustAngle < 158) {
+    	return "SEast"
+    } else if (GustAngle < 203) {
+    	return "South"
+    } else if (GustAngle < 248) {
+    	return "SWest"
+    } else if (GustAngle < 293) {
+    	return "West"
+    } else if (GustAngle < 338) {
+    	return "NWest"
+    } else if (GustAngle < 361) {
+    	return "North"
     }
 }
 
